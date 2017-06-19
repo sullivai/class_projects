@@ -1,1 +1,1 @@
-Computer Architecture and Assemnly
+Computer Architecture and Assembly
