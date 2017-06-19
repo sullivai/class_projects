@@ -1,0 +1,17 @@
+<form id="createNew">
+	<fieldset>
+		<legend>Add new entry</legend>
+		<p><label for="name">Exercise name:</label>
+			<input type="text" name="name" id="name" required></p>
+		<p><label for="reps">Reps</label>
+			<input type="number" name="reps" id="reps">
+		<label for="weight">Weight</label>
+			<input type="number" step="0.5" name="weight" id="weight"></p>
+		<p><label for="date">Date done:</label>
+			<input type="date" name="date" id="date">
+		<label for="lbs">Unit</label>
+			<input type="radio" name="lbs" value="0" checked>kg
+		<input type="radio" name="lbs" value="1">lb
+		<input type="submit" name="Add item" value="Add item" id="addNew"></p>
+	</fieldset>
+</form>

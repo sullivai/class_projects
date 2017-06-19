@@ -1,0 +1,153 @@
+/**
+ * Aimee Sullivan (sullivai) 
+ * CS290-400 HW Week9
+ * 28 May 2016
+ * Styles 
+ */
+
+
+body {
+	font-family: sans-serif;
+}
+
+
+h1 { 
+	width: 60%;
+	margin: auto;
+	text-align: center; 
+	background-color: #82C2EC;
+    transform:scale(2,1);
+}
+
+
+.normal { 
+	width: 100%;
+	margin: auto;
+	text-align: center; 
+	background-color: #82C2EC;
+	transform:scale(1,1);
+}
+
+
+table { 
+	border-collapse: collapse; 
+	width: 35em; 
+	margin: 20px auto; 
+	border: 2px solid #377DAC;
+}
+
+
+thead {
+	background-color: #82C2EC;
+}
+
+
+tr:nth-of-type(even) {
+  background-color: #DDEBF7;
+}
+
+
+td, th { 
+	padding: 3px 8px; 
+}
+
+
+th { 
+	text-align: left; 
+}
+
+
+th:first-child {
+	width: 40%;
+}
+
+
+td {
+	text-align: center;
+}
+
+
+td:first-of-type {
+	text-align: left;
+}
+
+
+p { 
+	padding: 0px 20px;
+	text-align: left; 
+	margin: 20px auto; 
+}
+
+
+p > label:first-child {
+  display: inline-block;
+  width: 7em;
+  text-align: right;
+}
+
+
+p > label {
+  display: inline-block;
+  width: 5em;
+  text-align: right;
+}
+
+
+fieldset {
+	width: 35em;
+	margin: 20px auto;
+	background-color: #DDEBF7;
+	padding: 0px;
+	border: 2px solid #377DAC;
+}
+
+
+fieldset legend {
+    margin-left: 20px;
+    color: #377DAC;
+    font-weight: bold;
+}
+
+
+input[type="submit"] {
+    background-color: #82C2EC;
+    border-top: 1px solid #377DAC;
+    box-shadow: #377DAC 0 1px 0;
+    font-size: 1em;
+    border: none;
+}
+
+
+input[type="submit"]:hover {
+    border: none;
+    background: #2796E1;
+}
+
+
+input[type="text"] {
+	width: 25.5em;
+	margin: 3px;
+}
+
+input[type="number"] {
+	width: 9em;
+	margin: 3px;
+}
+
+input[type="date"] {
+	width: 9em;
+}
+
+
+td > input[type="submit"]:hover {
+    border: none;
+    background: red;
+}
+
+
+fieldset input[type="submit"] {
+    border: none;
+    background: #82C2EC;
+	display: inline-block;
+	float: right;
+}
