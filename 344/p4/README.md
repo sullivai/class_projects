@@ -1,1 +1,1 @@
-Proj 4 OTP
+Simple one-time pad using sockets
