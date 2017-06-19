@@ -1,0 +1,206 @@
+#!/bin/bash
+
+########################################################################################
+# Name:  Aimee Sullivan                                                                #
+# Date:  28 January 2017  (today I am 42 years old!!)                                  #
+# CS344 Section 400                                                                    #
+# Program 1 - stats                                                                    #
+# Bash script to take in numeric input either from a file or stdin and diisplay the    #
+# medians and averages of either the columns or rows. No input validation other than   #
+# checking for correct format of parameters and optional regular, readable input file  #
+# exists.  Assumes all rows have same number of values.                                #
+#  Usage: ./stats {-rows|-cols} [file]                                                 #
+########################################################################################   
+
+# Create some temp files.  All tempfile names start with tmp and end with the process id
+# to aid in clean-up.
+# Temp file to hold input
+tmpfile="tmpfile$$"
+# Temp file to hold transposed input
+tmpnew="tmpnew$$"
+# Temp file to hold intermediate calculations
+tmpstat="tmpstat$$"
+# Temp file to hold calculated means and medians
+tmp="tmp$$"
+# Temp file of different transposed input. Yeah, there's gotta be a better way to do this
+tmprows="tmprow$$"
+
+
+# Make sure I can clean up all those temp files if something goes horribly wrong.
+# cmd variable created after wasting some hours with the "missing argument to -exec" error
+# to get around trying (and failing) to figure out what needed escaping and how it needed
+# it given the double quotes everything is wrapped in. Double quotes were needed to make
+# the regular expression work. This site helped:
+# http://www.linuxquestions.org/questions/programming-9/find-in-bash-script-returns-missing-argument-to-%60-exec'-while-cmd-runs-fine-925943/
+# Find files using regex that start with "tmp", then any number of any character, and end
+# with the process id. Remove all such files found. Trap interrupt, hangup, and terminate
+cmd=" -exec rm -f {} \;"
+trap "find . -regex \"^./tmp.*$$\$\" $cmd; echo 'exiting'; exit 1" INT HUP TERM
+
+
+# There need to be only one or two arguments to run the program.
+# Error out if wrong number of arguments or wrong format of first argument
+# First argument should start with "-r" or "-c" and nothing else.
+# At the end of this if block I know I have only one or two args and
+# the first one is in the right format for specifying rows or cols
+if [[ "$#" < 1 ]] || [[ "$#" > 2 ]] || [[ ! "$1" =~ ^-[rc] ]]
+then
+	echo "./stats {-rows|-cols} [file]" 1>&2
+	exit 1
+fi
+
+
+# Now there are either one or two arguments.
+# If two arguments, error out if file not found or unreadable.
+# -f checks that the file is a regular file as opposed to a directory
+# (and thus implicitly checks that the file exists).  I chose this over 
+# -e (file exists) to prevent trying to run the program on unsuitable files.
+# -r checks that file is readable and so implicitly checks that it exists.
+# At the end of this if block I'll have my input values in one file,
+# whether the original source was a file or manual input.  I'll also
+# know whether the user wants row or column calcualations.
+if [[ "$#" == 2 ]]
+then
+	if [[ ! -f "$2" ]] || [[ ! -r "$2" ]]
+	then
+		echo "./stats: cannot read $2" 1>&2
+		exit 1
+# Exit 0 if file is empty. This is not an error, but no reason to
+# run any more of the program.	
+	elif [[ ! -s "$2" ]]
+	then
+		exit 0
+# Otherwise the file is readable so dump it to my tempfile for easier manipulation
+	else
+		cat "$2" > "$tmpfile"
+	fi
+# If there's only one argument, cat manual input to my tmpfile for easier manipulation
+else
+	cat > "$tmpfile"
+fi
+
+
+# All the input, whether from a file or manual input, is now in my temp file.
+# Get number of rows and columns in the file for use later in calculating mean and 
+# median.  Use a "here string" to feed the values returned by wc into a few variables.
+# First value output is line count, second is total words, which I can use to calculate
+# the number of colums, given the assumption in the assignment that all rows will have  
+# the same number of values.  I don't care about anything else wc outputs, so it is junk.
+# http://stackoverflow.com/questions/7119936/results-of-wc-as-variables
+# http://tldp.org/LDP/abs/html/x17837.html
+read rows words junk <<< $(wc $tmpfile)
+cols=$(( words/rows ))
+
+
+# My intent (down below) is to transpose the input if needed depending on the user
+# choice of -r or -c so that I can do the same calculation no matter which was chosen.
+# The following function will perform the stats calculations and allow me to
+# display the results. It is called with slightly different parameters in the blocks 
+# below, depending on the -r or -c choice.
+
+#######################################################################################
+# Function to calculate stats and write them to another temp file
+# Parameters: Number either of rows and columns from the original input or vice versa
+# depending on whether row stats or column stats are desired
+# Usage: stats $rows $cols for -r; stats $cols $rows for -c
+#######################################################################################
+function stat {
+# Read the first line of input from the tempfile	
+	read line < $tmpfile
+# Loop through each column of the tempfile (from 1 to the number passed in as first 
+# argument, which will be the total number of columns in this file). Based on assumption 
+# of "rectangular file"
+	for (( i=1; i <= $1; i++ ))
+	do
+# Cut each column of numbers, sort it numerically, transpose the column into a row, 
+# and "echo" a new line. Pipe that row to tee which will append the row to a new file 
+# while also writing to stdout. This row will then be fed into the stdin of read in order 
+# to put it into a variable which is used in the following line.  Originally I sent each 
+# line to another temp file (overwriting the contents) for manipulation on the next line, 
+# but the intermediate temp file bugged me. The original line is commented out.  In 
+# hindsight, I didn't actually gain anything by doing it this way, but I'm too tired now
+# to put it back.
+# http://unix.stackexchange.com/questions/164482/pipe-redirect-a-group-of-commands
+# http://www.linuxquestions.org/questions/linux-software-2/bash-how-to-redirect-output-to-file-and-still-have-it-on-screen-412611/
+		read tmpvar <<< $( (cut -f $i $tmpfile | sort -n | tr '\n' '\t'; echo) | tee -a $tmpnew )
+		#(cut -f $i $tmpfile | sort -n | tr '\n' '\t'; echo) | tee -a $tmpnew > $tmp
+# Echo the variable (originally the 2nd tempfile, see commented line below), transforming
+# the spaces between the values into "+" signs, making a string that can be evaluated as 
+# an arithmetic expression. Continue to echo another + then the original number of rows 
+# (which'll be how many values are in the preceding string) divided by two, all of that
+# divided by the number of values.  This is the rounding formula given in the assignment 
+# specifications. All of that is wrapped in (( )) so that it will be evaluated as an 
+# expression, resulting in the mean. Each mean (remember, this is for each column of the
+# input file) is appended to another temp file, making a column of the means.
+# http://stackoverflow.com/questions/450799/shell-command-to-sum-integers-one-per-line/7720597#7720597
+		echo $(( ( $( echo $tmpvar | tr " " "+" ) + $(( $2 / 2 )) ) / $2 )) >> $tmpstat	
+		#echo $(( ( $( cat $tmp | tr "\t" "\n" | tr "\n" "+" ) $(( $2 / 2 )) ) / $2 )) >> $tmpstat
+	done
+# Transpose the column of means into a row and put it into a new file
+	(cut -f 1 $tmpstat | tr '\n' '\t' ; echo) > $tmp
+	
+# Find the midpoint (or round up if number of values was even). This uses the original 
+# number of rows (before transposition).
+	mid=$(( ( $2 + 1 ) - ( $2 + 1 ) / 2 ))
+
+# Cut the median column, transform it into a row, and append it to the previous new file,
+# making a file with two rows, the top one holding all the mean values and the bottom one
+# holding all the medians.
+	(cut -f $mid $tmpnew | tr '\n' '\t' ; echo) >> $tmp
+}
+
+
+# By this point I have a temp file containing input and I know that the first argument
+# specifies either row or column calculations.  Since it's easier to sort things in 
+# columns using cut, I'll start there.
+
+# Columns
+if [[ "$1" =~ ^-c ]]
+then
+# Call stat function to slice, sort, transpose input, calculate means, find medians,
+# and put those in another file. First argument is the number of columns of input, second
+# argument is number or rows
+	stat $cols $rows
+# Print results
+	echo "Averages:"
+# First row is means, so print it as-is
+	head -n1 $tmp
+	echo "Medians:"
+# Second (last) row is medians, so print it as-is
+	tail -n1 $tmp
+
+# Rows
+else
+# Transpose the input file so that I can call my function on it same as if columns
+# Read first line of input.
+	read line < $tmpfile
+# For each column in the input, transform it into a row and append it to a temp file	
+	for (( i=1; i <= $cols; i++ ))
+	do
+		(cut -f $i $tmpfile | tr '\n' '\t'; echo) >> $tmprows
+	done
+# Reassign this new transposed temp file back to my original temp input file that I'm 
+# working with
+	tmpfile=$tmprows
+# Call the function. It'll do the same thing as above now that the file is transposed.
+# Make sure to switch the $rows/$columns arguments though, since they are based on the
+# original input and now the file is transposed.
+	stat $rows $cols
+
+# Print Column Headers
+	echo -e Average'\'tMedian
+# Transpose the tmp file from rows into columns by cutting each column (one mean and one
+# median, and transforming it, then display as-is (first column is means,
+# second column is medians, by row of original input)
+	read line < $tmp
+	for (( i=1; i <= $rows; i++ ))
+	do
+		(cut -f $i $tmp | tr '\n' '\t'; echo)
+	done
+fi
+
+
+# Clean up temp files
+# Find files using regex that start with "tmp", then any number of any character, and end
+# with the process id. Remove all such files found.
+find . -regex "^./tmp.*$$\$" -exec rm -f '{}' \;
